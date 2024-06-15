@@ -15,7 +15,7 @@ router.post('/adduser', jwtCheck, jsonParser, async (req, res) => {
     }
 });
 
-router.get('/getuser', jwtCheck, jsonParser, async (req, res) => {
+router.get('/getuser', jwtCheck, async (req, res) => {
     //get the user from the database
     var user = await db.query("select * from users where user_id = $1", [req.headers.user_id]);
 
@@ -25,7 +25,7 @@ router.get('/getuser', jwtCheck, jsonParser, async (req, res) => {
     }
     else{
         console.log("someone tried to access a user that doesnt exist!!!");
-        res.end();
+        res.json(null);
     }
 })
 
