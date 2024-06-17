@@ -28,7 +28,7 @@ router.get('/getcars', jwtCheck, requireUser, async(req, res) => {
     //respond with all the cars
     res.json({
         cars: cars.rows,
-        current_car: current_car,
+        current_car: req.user_db.current_car,
     });
 });
 
