@@ -1,18 +1,10 @@
 var router = require('express').Router();
 var jsonParser = require('body-parser').json();
 const { jwtCheck, db } = require('../utils.js');
+const { requireUserIDHeader, requireUser, requireCarIDQuery } = require('../middleware.js');
 
-router.post('/addcar', jwtCheck, jsonParser, async (req, res) => {
-    //get the user from the database
-    var user = await db.query("select current_car from users where user_id = $1", [req.headers.user_id]);
-    //if the user does not exist then fail
-    if(user.rows.length != 1){
-        console.log("someone tried to access a user that doesnt exist!!!");
-        res.json(null); 
-        return;
-    }
-
-    //TODO: add input validation
+router.post('/addcar', jwtCheck, jsonParser, requireUser, async (req, res) => {
+    //TODO: add post body input validation
 
     //add the car to the cars table using the request body
     var car = await db.query("insert into cars(user_id, name, year, make, model, picture, miles) values($1, $2, $3, $4, $5, $6, $7) returning *;", 
@@ -30,16 +22,14 @@ router.post('/addcar', jwtCheck, jsonParser, async (req, res) => {
     }
 });
 
-router.get('/getcars', jwtCheck, async(req, res) => {
-    //get the current car accessed by the user
-    var user = await db.query("select current_car from users where user_id = $1", [req.headers.user_id]);
-    var current_car = 0;
-    if(user.rows.length == 1 && user.rows[0].current_car != null){
-        current_car = user.rows[0].current_car;
-    }
-
-    //get all cars associated with the user
+router.get('/getcars', jwtCheck, requireUser, async(req, res) => {
     var cars = await db.query("select * from cars where user_id = $1", [req.headers.user_id]);
+
+    //if the current_car is null make it 0 for better handling on the frontend
+    var current_car = req.user_db.current_car;
+    if(current_car == null){
+        current_car = 0;
+    }
 
     //respond with all the cars
     res.json({
@@ -48,37 +38,18 @@ router.get('/getcars', jwtCheck, async(req, res) => {
     });
 });
 
-router.get('/deletecar', jwtCheck, async(req, res) => {
-    //get the user from the database
-    var user = await db.query("select current_car from users where user_id = $1", [req.headers.user_id]);
-    //if the user does not exist then fail
-    if(user.rows.length != 1){
-        console.log("someone tried to access a user that doesnt exist!!!");
-        res.json(null); 
-        return;
-    }
+router.get('/deletecar', jwtCheck, requireUser, requireCarIDQuery, async(req, res) => {
+    await db.query("delete from cars where user_id = $1 and car_id = $2", [req.headers.user_id, req.query.car_id])
 
-    if(req.query.car_id != null){
-        await db.query("delete from cars where user_id = $1 and car_id = $2", [req.headers.user_id, req.query.car_id])
-        //update 
-        if(req.query.car_id == user.rows[0].currentCar){
-            await db.query("update users set current_car = null where user_id = $1;", [req.headers.user_id]);
-        }
+    //set current car for the user to null if we deleted there current car
+    if(req.query.car_id == req.user_db.current_car){
+        await db.query("update users set current_car = null where user_id = $1;", [req.headers.user_id]);
     }
     res.json(null);
 });
 
-router.get('/getcurrentcar', jwtCheck, async(req, res) => {
-    //get the current car accessed by the user
-    var user = await db.query("select current_car from users where user_id = $1", [req.headers.user_id]);
-    //if the user does not exist then fail
-    if(user.rows.length != 1){
-        console.log("someone tried to access a user that doesnt exist!!!");
-        res.json(null);  
-        return;
-    }
-
-    var currentCar = await db.query("select * from cars where car_id = $1 and user_id = $2", [user.rows[0].current_car, req.headers.user_id]);
+router.get('/getcurrentcar', jwtCheck, requireUser, async(req, res) => {
+    var currentCar = await db.query("select * from cars where car_id = $1 and user_id = $2", [req.user_db.current_car, req.headers.user_id]);
     if(currentCar.rows.length == 1){
         res.json(currentCar.rows[0]);
     }
@@ -87,20 +58,8 @@ router.get('/getcurrentcar', jwtCheck, async(req, res) => {
     }
 });
 
-router.get('/setcurrentcar', jwtCheck, async(req, res) => {
-    //get the user from the database
-    var user = await db.query("select current_car from users where user_id = $1", [req.headers.user_id]);
-    //if the user does not exist then fail
-    if(user.rows.length != 1){
-        console.log("someone tried to access a user that doesnt exist!!!");
-        res.json(null); 
-        return;
-    }
-
-    if(req.query.car_id != null){
-        await db.query("update users set current_car = $1 where user_id = $2;", [req.query.car_id, req.headers.user_id]);
-    }
-
+router.get('/setcurrentcar', jwtCheck, requireUserIDHeader, requireCarIDQuery, async(req, res) => {
+    await db.query("update users set current_car = $1 where user_id = $2;", [req.query.car_id, req.headers.user_id]);
     res.json(null);
 });
 
