@@ -25,12 +25,6 @@ router.post('/addcar', jwtCheck, jsonParser, requireUser, async (req, res) => {
 router.get('/getcars', jwtCheck, requireUser, async(req, res) => {
     var cars = await db.query("select * from cars where user_id = $1", [req.headers.user_id]);
 
-    //if the current_car is null make it 0 for better handling on the frontend
-    var current_car = req.user_db.current_car;
-    if(current_car == null){
-        current_car = 0;
-    }
-
     //respond with all the cars
     res.json({
         cars: cars.rows,
@@ -41,9 +35,9 @@ router.get('/getcars', jwtCheck, requireUser, async(req, res) => {
 router.get('/deletecar', jwtCheck, requireUser, requireCarIDQuery, async(req, res) => {
     await db.query("delete from cars where user_id = $1 and car_id = $2", [req.headers.user_id, req.query.car_id])
 
-    //set current car for the user to null if we deleted there current car
+    //set current car for the user to 0 if we deleted there current car
     if(req.query.car_id == req.user_db.current_car){
-        await db.query("update users set current_car = null where user_id = $1;", [req.headers.user_id]);
+        await db.query("update users set current_car = 0 where user_id = $1;", [req.headers.user_id]);
     }
     res.json(null);
 });
