@@ -1,7 +1,7 @@
 var router = require('express').Router();
 var jsonParser = require('body-parser').json();
 const { jwtCheck, db } = require('../utils.js');
-const { requireUserIDHeader, requireUser, requireCarIDQuery } = require('../middleware.js');
+const { requireUserIDHeader, requireUser, requireCarIDQuery, requireCarWithAccess } = require('../middleware.js');
 
 router.post('/addcar', jwtCheck, jsonParser, requireUser, async (req, res) => {
     //TODO: add post body input validation
@@ -52,7 +52,7 @@ router.get('/getcurrentcar', jwtCheck, requireUser, async(req, res) => {
     }
 });
 
-router.get('/setcurrentcar', jwtCheck, requireUserIDHeader, requireCarIDQuery, async(req, res) => {
+router.get('/setcurrentcar', jwtCheck, requireCarWithAccess, async(req, res) => {
     await db.query("update users set current_car = $1 where user_id = $2;", [req.query.car_id, req.headers.user_id]);
     res.json(null);
 });
