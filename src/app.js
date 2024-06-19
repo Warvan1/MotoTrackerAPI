@@ -1,12 +1,12 @@
 const express = require('express');
-var users = require('./routes/users.js');
-var cars = require('./routes/cars.js');
-var maintenanceLog = require('./routes/maintenanceLog.js');
-var cors = require('cors');
+let users = require('./routes/users.js');
+let cars = require('./routes/cars.js');
+let maintenanceLog = require('./routes/maintenanceLog.js');
+let cors = require('cors');
 
 const app = express();
 
-var corsOptions = {
+let corsOptions = {
     origin: 'http://localhost:5000',
     optionsSuccesStatus: 200
 }

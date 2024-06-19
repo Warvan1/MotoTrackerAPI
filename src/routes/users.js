@@ -1,11 +1,11 @@
-var router = require('express').Router();
-var jsonParser = require('body-parser').json();
+let router = require('express').Router();
+let jsonParser = require('body-parser').json();
 const { jwtCheck, db } = require('../utils.js');
 const { requireUser } = require('../middleware.js');
 
 router.post('/adduser', jwtCheck, jsonParser, async (req, res) => {
     //check to see if user already exists
-    var user = await db.query("select * from users where user_id = $1", [req.body.user_id]);
+    let user = await db.query("select * from users where user_id = $1", [req.body.user_id]);
 
     //TODO: add post body input validation
 

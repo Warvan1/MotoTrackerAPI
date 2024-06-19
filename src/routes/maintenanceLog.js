@@ -1,13 +1,13 @@
-var router = require('express').Router();
-var jsonParser = require('body-parser').json();
+let router = require('express').Router();
+let jsonParser = require('body-parser').json();
 const { jwtCheck, db } = require('../utils.js');
-const { requireCarWithAccess, ifCarCheckAccess, requireUser } = require('../middleware.js');
+const { ifCarCheckAccess, requireCarDBObject, requireUser } = require('../middleware.js');
 
-router.post('/addmaintenance', jwtCheck, jsonParser, requireCarWithAccess, async (req, res) => {
+router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckAccess, requireCarDBObject, async (req, res) => {
     //TODO: add post body input validation
 
     //add an entry to the maintenance log table
-    var log = await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, notes) values($1, $2, $3, $4, $5, $6) returning *;", 
+    let log = await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, notes) values($1, $2, $3, $4, $5, $6) returning *;", 
         [req.headers.user_id, req.query.car_id, req.body.type, req.body.miles, req.body.cost, req.body.notes]
     );
 
@@ -22,7 +22,7 @@ router.post('/addmaintenance', jwtCheck, jsonParser, requireCarWithAccess, async
 });
 
 router.get('/getmaintenancelog', jwtCheck, requireUser, ifCarCheckAccess, async (req, res) => {
-    var car_id;
+    let car_id;
     //if the car query is set
     if(req.car_db != null){
         car_id = req.car_db.car_id;
@@ -30,7 +30,7 @@ router.get('/getmaintenancelog', jwtCheck, requireUser, ifCarCheckAccess, async 
     else{
         car_id = req.user_db.current_car;
     }
-    var log = await db.query("select * from maintenance where car_id = $1", [car_id]);
+    let log = await db.query("select * from maintenance where car_id = $1", [car_id]);
 
     res.json(log.rows);
 })

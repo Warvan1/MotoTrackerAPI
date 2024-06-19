@@ -15,7 +15,7 @@ const requireUserIDHeader = async (req, res, next) => {
 const requireUser = async (req, res, next) => {
     if(req.headers.user_id != null){
         //get the user from the database
-        var user = await db.query("select * from users where user_id = $1", [req.headers.user_id]);
+        let user = await db.query("select * from users where user_id = $1", [req.headers.user_id]);
         //if the user object is not found return
         if(user.rows.length != 1){
             res.json(null);
@@ -39,10 +39,10 @@ const requireCarIDQuery = async (req, res, next) => {
     }
 }
 
-const requireCarWithAccess = async (req, res, next) => {
+const ifCarCheckAccess = async (req, res, next) => {
     if(req.query.car_id != null && req.headers.user_id != null){
         //get the car from the database
-        var car = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.user_id]);
+        let car = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.user_id]);
         //if the user object is not found return
         if(car.rows.length != 1){
             res.json(null);
@@ -50,31 +50,21 @@ const requireCarWithAccess = async (req, res, next) => {
         }
         //add the car object to the req object
         req.car_db = car.rows[0]
+        next();
+    }
+    else{
+        next();
+    }
+
+}
+
+const requireCarDBObject = async (req, res, next) => {
+    if(req.car_db != null){
         next();
     }
     else{
         res.json(null);
     }
-
 }
 
-const ifCarCheckAccess = async (req, res, next) => {
-    if(req.query.car_id != null && req.headers.user_id != null){
-        //get the car from the database
-        var car = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.user_id]);
-        //if the user object is not found return
-        if(car.rows.length != 1){
-            res.json(null);
-            return;
-        }
-        //add the car object to the req object
-        req.car_db = car.rows[0]
-        next();
-    }
-    else{
-        next();
-    }
-
-}
-
-module.exports = { requireUserIDHeader, requireUser, requireCarIDQuery, requireCarWithAccess, ifCarCheckAccess }
+module.exports = { requireUserIDHeader, requireUser, requireCarIDQuery, ifCarCheckAccess, requireCarDBObject }

@@ -1,13 +1,13 @@
-var router = require('express').Router();
-var jsonParser = require('body-parser').json();
+let router = require('express').Router();
+let jsonParser = require('body-parser').json();
 const { jwtCheck, db } = require('../utils.js');
-const { requireUserIDHeader, requireUser, requireCarIDQuery, requireCarWithAccess } = require('../middleware.js');
+const { requireUser, requireCarIDQuery, ifCarCheckAccess, requireCarDBObject } = require('../middleware.js');
 
 router.post('/addcar', jwtCheck, jsonParser, requireUser, async (req, res) => {
     //TODO: add post body input validation
 
     //add the car to the cars table using the request body
-    var car = await db.query("insert into cars(user_id, name, year, make, model, picture, miles) values($1, $2, $3, $4, $5, $6, $7) returning *;", 
+    let car = await db.query("insert into cars(user_id, name, year, make, model, picture, miles) values($1, $2, $3, $4, $5, $6, $7) returning *;", 
         [req.headers.user_id, req.body.name, req.body.year, req.body.make, req.body.model, req.body.picture, req.body.miles]
     );
 
@@ -23,7 +23,7 @@ router.post('/addcar', jwtCheck, jsonParser, requireUser, async (req, res) => {
 });
 
 router.get('/getcars', jwtCheck, requireUser, async(req, res) => {
-    var cars = await db.query("select * from cars where user_id = $1", [req.headers.user_id]);
+    let cars = await db.query("select * from cars where user_id = $1", [req.headers.user_id]);
 
     //respond with all the cars
     res.json({
@@ -43,7 +43,7 @@ router.get('/deletecar', jwtCheck, requireUser, requireCarIDQuery, async(req, re
 });
 
 router.get('/getcurrentcar', jwtCheck, requireUser, async(req, res) => {
-    var currentCar = await db.query("select * from cars where car_id = $1 and user_id = $2", [req.user_db.current_car, req.headers.user_id]);
+    let currentCar = await db.query("select * from cars where car_id = $1 and user_id = $2", [req.user_db.current_car, req.headers.user_id]);
     if(currentCar.rows.length == 1){
         res.json(currentCar.rows[0]);
     }
@@ -52,7 +52,7 @@ router.get('/getcurrentcar', jwtCheck, requireUser, async(req, res) => {
     }
 });
 
-router.get('/setcurrentcar', jwtCheck, requireCarWithAccess, async(req, res) => {
+router.get('/setcurrentcar', jwtCheck, ifCarCheckAccess, requireCarDBObject, async(req, res) => {
     await db.query("update users set current_car = $1 where user_id = $2;", [req.query.car_id, req.headers.user_id]);
     res.json(null);
 });
