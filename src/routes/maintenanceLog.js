@@ -7,7 +7,7 @@ router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckAccess, requireCa
     //TODO: add post body input validation
 
     //add an entry to the maintenance log table
-    let log = await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, notes) values($1, $2, $3, $4, $5, $6);", 
+    await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, notes) values($1, $2, $3, $4, $5, $6);", 
         [req.headers.user_id, req.query.car_id, req.body.type, req.body.miles, req.body.cost, req.body.notes]
     );
 
@@ -33,7 +33,7 @@ router.get('/getmaintenancelog', jwtCheck, requireUser, ifCarCheckAccess, async 
     }
 
     if(req.query.filter != null){
-        log = await db.query("select * from maintenance where car_id = $1 and service_type = $2", [car_id, req.query.filter]);
+        log = await db.query("select * from maintenance where car_id = $1 and service_type = $2;", [car_id, req.query.filter]);
     }
     else{
         log = await db.query("select * from maintenance where car_id = $1;", [car_id]);

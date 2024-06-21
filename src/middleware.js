@@ -15,7 +15,7 @@ const requireUserIDHeader = async (req, res, next) => {
 const requireUser = async (req, res, next) => {
     if(req.headers.user_id != null){
         //get the user from the database
-        let user = await db.query("select * from users where user_id = $1", [req.headers.user_id]);
+        let user = await db.query("select * from users where user_id = $1;", [req.headers.user_id]);
         //if the user object is not found return
         if(user.rows.length != 1){
             res.json(null);

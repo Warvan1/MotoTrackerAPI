@@ -23,7 +23,7 @@ router.post('/addcar', jwtCheck, jsonParser, requireUser, async (req, res) => {
 });
 
 router.get('/getcars', jwtCheck, requireUser, async(req, res) => {
-    let cars = await db.query("select * from cars where user_id = $1", [req.headers.user_id]);
+    let cars = await db.query("select * from cars where user_id = $1;", [req.headers.user_id]);
 
     //respond with all the cars
     res.json({
@@ -33,7 +33,7 @@ router.get('/getcars', jwtCheck, requireUser, async(req, res) => {
 });
 
 router.get('/deletecar', jwtCheck, requireUser, requireCarIDQuery, async(req, res) => {
-    await db.query("delete from cars where user_id = $1 and car_id = $2", [req.headers.user_id, req.query.car_id])
+    await db.query("delete from cars where user_id = $1 and car_id = $2;", [req.headers.user_id, req.query.car_id])
 
     //set current car for the user to 0 if we deleted there current car
     if(req.query.car_id == req.user_db.current_car){
@@ -43,7 +43,7 @@ router.get('/deletecar', jwtCheck, requireUser, requireCarIDQuery, async(req, re
 });
 
 router.get('/getcurrentcar', jwtCheck, requireUser, async(req, res) => {
-    let currentCar = await db.query("select * from cars where car_id = $1 and user_id = $2", [req.user_db.current_car, req.headers.user_id]);
+    let currentCar = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.user_db.current_car, req.headers.user_id]);
     if(currentCar.rows.length == 1){
         res.json(currentCar.rows[0]);
     }
