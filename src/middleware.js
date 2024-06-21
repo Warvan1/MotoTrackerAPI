@@ -1,8 +1,8 @@
 const { db } = require('./utils.js');
 
-//stops the request if there is no user_id header
+//stops the request if there is no userid header
 const requireUserIDHeader = async (req, res, next) => {
-    if(req.headers.user_id != null){
+    if(req.headers.userid != null){
         next();
     }
     else{
@@ -10,12 +10,12 @@ const requireUserIDHeader = async (req, res, next) => {
     }
 }
 
-//stops the request if the user_id header does not have a coresponding user object in the database
+//stops the request if the userid header does not have a coresponding user object in the database
 //adds the user object to the req
 const requireUser = async (req, res, next) => {
-    if(req.headers.user_id != null){
+    if(req.headers.userid != null){
         //get the user from the database
-        let user = await db.query("select * from users where user_id = $1;", [req.headers.user_id]);
+        let user = await db.query("select * from users where user_id = $1;", [req.headers.userid]);
         //if the user object is not found return
         if(user.rows.length != 1){
             res.json(null);
@@ -40,9 +40,9 @@ const requireCarIDQuery = async (req, res, next) => {
 }
 
 const ifCarCheckAccess = async (req, res, next) => {
-    if(req.query.car_id != null && req.headers.user_id != null){
+    if(req.query.car_id != null && req.headers.userid != null){
         //get the car from the database
-        let car = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.user_id]);
+        let car = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.userid]);
         //if the user object is not found return
         if(car.rows.length != 1){
             res.json(null);

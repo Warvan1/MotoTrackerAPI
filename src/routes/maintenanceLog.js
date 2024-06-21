@@ -8,7 +8,7 @@ router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckAccess, requireCa
 
     //add an entry to the maintenance log table
     await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, notes) values($1, $2, $3, $4, $5, $6);", 
-        [req.headers.user_id, req.query.car_id, req.body.type, req.body.miles, req.body.cost, req.body.notes]
+        [req.headers.userid, req.query.car_id, req.body.type, req.body.miles, req.body.cost, req.body.notes]
     );
 
     //update the cars miles and total_costs
@@ -61,6 +61,6 @@ router.get('/getmaintenancelog', jwtCheck, requireUser, ifCarCheckAccess, async 
         totalPages: totalPages,
         page: page
     });
-})
+});
 
 module.exports = router;
