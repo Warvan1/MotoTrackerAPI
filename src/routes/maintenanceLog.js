@@ -21,22 +21,13 @@ router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckAccess, requireCa
     res.json(null);
 });
 
-router.get('/getmaintenancelog', jwtCheck, requireUser, ifCarCheckAccess, async (req, res) => {
-    let car_id;
+router.get('/getmaintenancelog', jwtCheck, requireUser, async (req, res) => {
     let log;
-    //if the car query is set
-    if(req.car_db != null){
-        car_id = req.car_db.car_id;
-    }
-    else{
-        car_id = req.user_db.current_car;
-    }
-
     if(req.query.filter != null){
-        log = await db.query("select * from maintenance where car_id = $1 and service_type = $2;", [car_id, req.query.filter]);
+        log = await db.query("select * from maintenance where car_id = $1 and service_type = $2;", [req.user_db.current_car, req.query.filter]);
     }
     else{
-        log = await db.query("select * from maintenance where car_id = $1;", [car_id]);
+        log = await db.query("select * from maintenance where car_id = $1;", [req.user_db.current_car]);
     }
 
     //paging calculations
@@ -61,6 +52,13 @@ router.get('/getmaintenancelog', jwtCheck, requireUser, ifCarCheckAccess, async 
         totalPages: totalPages,
         page: page
     });
+});
+
+router.get('/deletemaintenancelog', jwtCheck, requireUser, async (req, res) => {
+    if(req.query.maintenance_id != null){
+        await db.query("delete from maintenance where user_id = $1 and maintenance_id = $2;", [req.headers.userid, req.query.maintenance_id]);
+    }
+    res.json(null);
 });
 
 module.exports = router;
