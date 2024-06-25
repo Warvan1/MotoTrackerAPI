@@ -55,9 +55,37 @@ router.get('/getmaintenancelog', jwtCheck, requireUser, async (req, res) => {
 });
 
 router.get('/deletemaintenancelog', jwtCheck, requireUser, async (req, res) => {
-    if(req.query.maintenance_id != null){
-        await db.query("delete from maintenance where user_id = $1 and maintenance_id = $2;", [req.headers.userid, req.query.maintenance_id]);
+    if(req.query.maintenance_id == null){
+        res.json(null);
+        return;
     }
+
+    let deletedLog = await db.query("delete from maintenance where user_id = $1 and maintenance_id = $2 returning *;", [req.headers.userid, req.query.maintenance_id]);
+
+    //return if we failed to delete
+    if(deletedLog.rows.length == 0){
+        res.json(null);
+        return;
+    }
+
+    //retrieve the car that the maintenance log entry refrenced
+    let car = await db.query("select * from cars where car_id = $1", [deletedLog.rows[0].car_id]);
+    //retrieve the current max miles entry for this car
+    let log = await db.query("select max(miles) from maintenance where car_id = $1;", [deletedLog.rows[0].car_id]);
+
+    //handle empty log case
+    let miles = log.rows[0].max;
+    if(miles == null){
+        miles = 0;
+    }
+
+    //update the car miles and total_costs
+    await db.query("update cars set miles = $2, total_costs = $3 where car_id = $1;", 
+        [deletedLog.rows[0].car_id, miles, parseFloat(car.rows[0].total_costs) - parseFloat(deletedLog.rows[0].cost)]
+    );
+
+    //TODO: add querys to update msl and tsl values
+
     res.json(null);
 });
 
