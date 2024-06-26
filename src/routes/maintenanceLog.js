@@ -7,14 +7,21 @@ router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckAccess, requireCa
     //TODO: add post body input validation
 
     //add an entry to the maintenance log table
-    await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, notes) values($1, $2, $3, $4, $5, $6);", 
-        [req.headers.userid, req.query.car_id, req.body.type, req.body.miles, req.body.cost, req.body.notes]
+    await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, gallons, notes) values($1, $2, $3, $4, $5, $6, $7);", 
+        [req.headers.userid, req.query.car_id, req.body.type, req.body.miles, req.body.cost, req.body.gallons, req.body.notes]
     );
 
-    //update the cars miles and total_costs
-    await db.query("update cars set miles = $2, total_costs = $3 where car_id = $1;", 
-        [req.query.car_id, req.body.miles, parseFloat(req.car_db.total_costs) + parseFloat(req.body.cost)]
-    );
+    //update the cars miles, total_costs, total_gallons, and total_fuel_costs
+    if(req.body.type == "Fuel"){
+        await db.query("update cars set miles = $2, total_costs = $3, total_gallons = $4, total_fuel_costs = $5 where car_id = $1;", 
+            [req.query.car_id, req.body.miles, parseFloat(req.car_db.total_costs) + parseFloat(req.body.cost), parseFloat(req.car_db.total_gallons) + parseFloat(req.body.gallons), parseFloat(req.car_db.total_fuel_costs) + parseFloat(req.body.cost)]
+        );
+    }
+    else{
+        await db.query("update cars set miles = $2, total_costs = $3 where car_id = $1;", 
+            [req.query.car_id, req.body.miles, parseFloat(req.car_db.total_costs) + parseFloat(req.body.cost)]
+        );
+    }
 
     //TODO: add querys to update msl and tsl values
 
@@ -79,10 +86,17 @@ router.get('/deletemaintenancelog', jwtCheck, requireUser, async (req, res) => {
         miles = 0;
     }
 
-    //update the car miles and total_costs
-    await db.query("update cars set miles = $2, total_costs = $3 where car_id = $1;", 
-        [deletedLog.rows[0].car_id, miles, parseFloat(car.rows[0].total_costs) - parseFloat(deletedLog.rows[0].cost)]
-    );
+    //update the car miles, total_costs, total_gallons, and total_fuel_costs
+    if(deletedLog.rows[0].service_type == "Fuel"){
+        await db.query("update cars set miles = $2, total_costs = $3, total_gallons = $4, total_fuel_costs = $5 where car_id = $1;", 
+            [deletedLog.rows[0].car_id, miles, parseFloat(car.rows[0].total_costs) - parseFloat(deletedLog.rows[0].cost), parseFloat(car.rows[0].total_gallons) - parseFloat(deletedLog.rows[0].gallons), parseFloat(car.rows[0].total_fuel_costs) - parseFloat(deletedLog.rows[0].cost)]
+        );
+    }
+    else{
+        await db.query("update cars set miles = $2, total_costs = $3 where car_id = $1;", 
+            [deletedLog.rows[0].car_id, miles, parseFloat(car.rows[0].total_costs) - parseFloat(deletedLog.rows[0].cost)]
+        );
+    }
 
     //TODO: add querys to update msl and tsl values
 

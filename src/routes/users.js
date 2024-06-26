@@ -3,7 +3,7 @@ let jsonParser = require('body-parser').json();
 const { jwtCheck, db } = require('../utils.js');
 const { requireUserIDHeader, requireUser } = require('../middleware.js');
 
-router.post('/adduser', jwtCheck, jsonParser, requireUserIDHeader, async (req, res) => {
+router.post('/adduser', jwtCheck, jsonParser, async (req, res) => {
     //check to see if user already exists
     let user = await db.query("select * from users where user_id = $1;", [req.body.userid]);
 
