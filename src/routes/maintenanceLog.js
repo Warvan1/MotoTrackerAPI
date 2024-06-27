@@ -23,7 +23,22 @@ router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckAccess, requireCa
         );
     }
 
-    //TODO: add querys to update msl and tsl values
+    //querys to update event values
+    if(req.body.type == "Oil Change"){
+        await db.query("update cars set oil_change_time = $1, oil_change_miles = $2;", [Date.now(), req.body.miles]);
+    }
+    else if(req.body.type == "Tire Rotation"){
+        await db.query("update cars set tire_rotation_time = $1, tire_rotation_miles = $2;", [Date.now(), req.body.miles]);
+    }
+    else if(req.body.type == "Air Filter"){
+        await db.query("update cars set air_filter_time = $1, air_filter_miles = $2;", [Date.now(), req.body.miles]);
+    }
+    else if(req.body.type == "Inspection"){
+        await db.query("update cars set inspection_time = $1;", [Date.now()]);
+    }
+    else if(req.body.type == "Registration"){
+        await db.query("update cars set registration_time = $1;", [Date.now()]);
+    }
 
     res.json(null);
 });
@@ -98,7 +113,58 @@ router.get('/deletemaintenancelog', jwtCheck, requireUser, async (req, res) => {
         );
     }
 
-    //TODO: add querys to update msl and tsl values
+    //querys to update event values
+    if(deletedLog.rows[0].service_type == "Oil Change"){
+        let previousEntries = await db.query("select * from maintenance where service_type = 'Oil Change' and car_id = $1;", [deletedLog.rows[0].car_id]);
+        if(previousEntries.rows.length != 0){
+            await db.query("update cars set oil_change_time = $1, oil_change_miles = $2;", 
+                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles]
+            );
+        }
+        else{
+            await db.query("update cars set oil_change_time = 0, oil_change_miles = 0;");
+        }
+    }
+    else if(deletedLog.rows[0].service_type == "Tire Rotation"){
+        let previousEntries = await db.query("select * from maintenance where service_type = 'Tire Rotation' and car_id = $1;", [deletedLog.rows[0].car_id]);
+        if(previousEntries.rows.length != 0){
+            await db.query("update cars set tire_rotation_time = $1, tire_rotation_miles = $2;", 
+                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles]
+            );
+        }
+        else{
+            await db.query("update cars set tire_rotation_time = 0, tire_rotation_miles = 0;");
+        }
+    }
+    else if(deletedLog.rows[0].service_type == "Air Filter"){
+        let previousEntries = await db.query("select * from maintenance where service_type = 'Air Filter' and car_id = $1;", [deletedLog.rows[0].car_id]);
+        if(previousEntries.rows.length != 0){
+            await db.query("update cars set air_filter_time = $1, air_filter_miles = $2;", 
+                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles]
+            );
+        }
+        else{
+            await db.query("update cars set air_filter_time = 0, air_filter_miles = 0;");
+        }
+    }
+    else if(deletedLog.rows[0].service_type == "Inspection"){
+        let previousEntries = await db.query("select * from maintenance where service_type = 'Inspection' and car_id = $1;", [deletedLog.rows[0].car_id]);
+        if(previousEntries.rows.length != 0){
+            await db.query("update cars set inspection_time = $1;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp]);
+        }
+        else{
+            await db.query("update cars set inspection_time = 0");
+        }
+    }
+    else if(deletedLog.rows[0].service_type == "Registration"){
+        let previousEntries = await db.query("select * from maintenance where service_type = 'Registration' and car_id = $1;", [deletedLog.rows[0].car_id]);
+        if(previousEntries.rows.length != 0){
+            await db.query("update cars set registration_time = $1;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp]);
+        }
+        else{
+            await db.query("update cars set registration_time = 0");
+        }
+    }
 
     res.json(null);
 });
