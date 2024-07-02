@@ -72,10 +72,21 @@ router.post('/sharecar', jwtCheck, jsonParser, ifCarCheckOwner, requireCarDBObje
     let user = await db.query("select * from users where email = $1;", [req.body.email]);
     if(user.rows.length == 0){
         res.json({
-            message: "email is not connected to a user account."
+            success: false
         });
         return;
     }
+
+    //handle deleting a users access if permissions is set to "Remove Access"
+    if(req.body.permissions === "Remove Access"){
+        await db.query("delete from access where car_id = $1 and user_id = $2;", [req.query.car_id, user.rows[0].user_id]);
+        res.json({
+            success: true
+        });
+        return;
+    }
+
+    //handle adding or updating access for the user
     let access = await db.query("select * from access where car_id = $1 and user_id = $2;", [req.query.car_id, user.rows[0].user_id]);
     if(access.rows.length == 0){
         await db.query("insert into access values($1, $2, $3)", [req.query.car_id, user.rows[0].user_id, req.body.permissions]);
@@ -84,8 +95,20 @@ router.post('/sharecar', jwtCheck, jsonParser, ifCarCheckOwner, requireCarDBObje
         await db.query("update access set permissions = $3 where car_id = $1 and user_id = $2;", [req.query.car_id, user.rows[0].user_id, req.body.permissions]);
     }
     res.json({
-        message: "shared succesfully."
-    })
+        success: true
+    });
 });
+
+router.get('/removemycaraccess', jwtCheck, ifCarCheckView, requireCarDBObject, async(req, res) => {
+    //check to make sure that we arnt the owner of the car
+    let user = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.userid]);
+    if(user.rows.length == 1){
+        res.json(null);
+        return;
+    }
+
+    //remove access from access table
+    await db.query("delete from access where car_id = $1 and user_id = $2", [req.query.car_id, req.headers.userid]);
+})
 
 module.exports = router;
