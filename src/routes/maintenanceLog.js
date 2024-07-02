@@ -1,43 +1,43 @@
 let router = require('express').Router();
 let jsonParser = require('body-parser').json();
 const { jwtCheck, db } = require('../utils.js');
-const { ifCarCheckAccess, requireCarDBObject, requireUser } = require('../middleware.js');
+const { requireUser, ifCarCheckEdit, requireCarDBObject } = require('../middleware.js');
 
-router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckAccess, requireCarDBObject, async (req, res) => {
+router.post('/addmaintenance', jwtCheck, jsonParser, ifCarCheckEdit, requireCarDBObject, async (req, res) => {
     //TODO: add post body input validation
 
     //add an entry to the maintenance log table
     await db.query("insert into maintenance(user_id, car_id, service_type, miles, cost, gallons, notes) values($1, $2, $3, $4, $5, $6, $7);", 
-        [req.headers.userid, req.query.car_id, req.body.type, req.body.miles, req.body.cost, req.body.gallons, req.body.notes]
+        [req.car_db.user_id, req.car_db.car_id, req.body.type, req.body.miles, req.body.cost, req.body.gallons, req.body.notes]
     );
 
     //update the cars miles, total_costs, total_gallons, and total_fuel_costs
     if(req.body.type == "Fuel"){
         await db.query("update cars set miles = $2, total_costs = $3, total_gallons = $4, total_fuel_costs = $5 where car_id = $1;", 
-            [req.query.car_id, req.body.miles, parseFloat(req.car_db.total_costs) + parseFloat(req.body.cost), parseFloat(req.car_db.total_gallons) + parseFloat(req.body.gallons), parseFloat(req.car_db.total_fuel_costs) + parseFloat(req.body.cost)]
+            [req.car_db.car_id, req.body.miles, parseFloat(req.car_db.total_costs) + parseFloat(req.body.cost), parseFloat(req.car_db.total_gallons) + parseFloat(req.body.gallons), parseFloat(req.car_db.total_fuel_costs) + parseFloat(req.body.cost)]
         );
     }
     else{
         await db.query("update cars set miles = $2, total_costs = $3 where car_id = $1;", 
-            [req.query.car_id, req.body.miles, parseFloat(req.car_db.total_costs) + parseFloat(req.body.cost)]
+            [req.car_db.car_id, req.body.miles, parseFloat(req.car_db.total_costs) + parseFloat(req.body.cost)]
         );
     }
 
     //querys to update event values
     if(req.body.type == "Oil Change"){
-        await db.query("update cars set oil_change_time = $1, oil_change_miles = $2;", [Date.now(), req.body.miles]);
+        await db.query("update cars set oil_change_time = $1, oil_change_miles = $2 where car_id = $3;", [Date.now(), req.body.miles, req.car_db.car_id]);
     }
     else if(req.body.type == "Tire Rotation"){
-        await db.query("update cars set tire_rotation_time = $1, tire_rotation_miles = $2;", [Date.now(), req.body.miles]);
+        await db.query("update cars set tire_rotation_time = $1, tire_rotation_miles = $2 where car_id = $3;", [Date.now(), req.body.miles, req.car_db.car_id]);
     }
     else if(req.body.type == "Air Filter"){
-        await db.query("update cars set air_filter_time = $1, air_filter_miles = $2;", [Date.now(), req.body.miles]);
+        await db.query("update cars set air_filter_time = $1, air_filter_miles = $2 where car_id = $3;", [Date.now(), req.body.miles, req.car_db.car_id]);
     }
     else if(req.body.type == "Inspection"){
-        await db.query("update cars set inspection_time = $1;", [Date.now()]);
+        await db.query("update cars set inspection_time = $1 where car_id = $2;", [Date.now(), req.car_db.car_id]);
     }
     else if(req.body.type == "Registration"){
-        await db.query("update cars set registration_time = $1;", [Date.now()]);
+        await db.query("update cars set registration_time = $1 where car_id = $2;", [Date.now(), req.car_db.car_id]);
     }
 
     res.json(null);
@@ -82,7 +82,16 @@ router.get('/deletemaintenancelog', jwtCheck, requireUser, async (req, res) => {
         return;
     }
 
-    let deletedLog = await db.query("delete from maintenance where user_id = $1 and maintenance_id = $2 returning *;", [req.headers.userid, req.query.maintenance_id]);
+    //check to make sure that we have edit permissions for the car
+    let access = await db.query("select * from access where car_id = $1 and user_id = $2 and permissions = $3", [req.user_db.current_car, req.user_db.user_id, "Edit"]);
+    //if we dont have edit permissions
+    if(access.rows.length == 0){
+        res.json(null);
+        return;
+    }
+
+    //delete the entry from the maintenance log
+    let deletedLog = await db.query("delete from maintenance where maintenance_id = $1 returning *;", [req.query.maintenance_id]);
 
     //return if we failed to delete
     if(deletedLog.rows.length == 0){
@@ -117,52 +126,52 @@ router.get('/deletemaintenancelog', jwtCheck, requireUser, async (req, res) => {
     if(deletedLog.rows[0].service_type == "Oil Change"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Oil Change' and car_id = $1;", [deletedLog.rows[0].car_id]);
         if(previousEntries.rows.length != 0){
-            await db.query("update cars set oil_change_time = $1, oil_change_miles = $2;", 
-                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles]
+            await db.query("update cars set oil_change_time = $1, oil_change_miles = $2 where car_id = $3;", 
+                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles, deletedLog.rows[0].car_id]
             );
         }
         else{
-            await db.query("update cars set oil_change_time = 0, oil_change_miles = 0;");
+            await db.query("update cars set oil_change_time = 0, oil_change_miles = 0 where car_id = $1;", [deletedLog.rows[0].car_id]);
         }
     }
     else if(deletedLog.rows[0].service_type == "Tire Rotation"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Tire Rotation' and car_id = $1;", [deletedLog.rows[0].car_id]);
         if(previousEntries.rows.length != 0){
-            await db.query("update cars set tire_rotation_time = $1, tire_rotation_miles = $2;", 
-                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles]
+            await db.query("update cars set tire_rotation_time = $1, tire_rotation_miles = $2 where car_id = $3;", 
+                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles, deletedLog.rows[0].car_id]
             );
         }
         else{
-            await db.query("update cars set tire_rotation_time = 0, tire_rotation_miles = 0;");
+            await db.query("update cars set tire_rotation_time = 0, tire_rotation_miles = 0 where car_id = $1;", [deletedLog.rows[0].car_id]);
         }
     }
     else if(deletedLog.rows[0].service_type == "Air Filter"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Air Filter' and car_id = $1;", [deletedLog.rows[0].car_id]);
         if(previousEntries.rows.length != 0){
-            await db.query("update cars set air_filter_time = $1, air_filter_miles = $2;", 
-                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles]
+            await db.query("update cars set air_filter_time = $1, air_filter_miles = $2 where car_id = $3;", 
+                [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles, deletedLog.rows[0].car_id]
             );
         }
         else{
-            await db.query("update cars set air_filter_time = 0, air_filter_miles = 0;");
+            await db.query("update cars set air_filter_time = 0, air_filter_miles = 0 where car_id = $1;", [deletedLog.rows[0].car_id]);
         }
     }
     else if(deletedLog.rows[0].service_type == "Inspection"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Inspection' and car_id = $1;", [deletedLog.rows[0].car_id]);
         if(previousEntries.rows.length != 0){
-            await db.query("update cars set inspection_time = $1;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp]);
+            await db.query("update cars set inspection_time = $1 where car_id = $2;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp, deletedLog.rows[0].car_id]);
         }
         else{
-            await db.query("update cars set inspection_time = 0");
+            await db.query("update cars set inspection_time = 0 where car_id = $1;", [deletedLog.rows[0].car_id]);
         }
     }
     else if(deletedLog.rows[0].service_type == "Registration"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Registration' and car_id = $1;", [deletedLog.rows[0].car_id]);
         if(previousEntries.rows.length != 0){
-            await db.query("update cars set registration_time = $1;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp]);
+            await db.query("update cars set registration_time = $1 where car_id = $2;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp, deletedLog.rows[0].car_id]);
         }
         else{
-            await db.query("update cars set registration_time = 0");
+            await db.query("update cars set registration_time = 0 where car_id = $1;", [deletedLog.rows[0].car_id]);
         }
     }
 
