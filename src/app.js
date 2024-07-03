@@ -2,6 +2,7 @@ const express = require('express');
 let users = require('./routes/users.js');
 let cars = require('./routes/cars.js');
 let maintenanceLog = require('./routes/maintenanceLog.js');
+let { jwtCheck } = require('./utils.js');
 let cors = require('cors');
 
 const app = express();
@@ -12,6 +13,7 @@ let corsOptions = {
 }
 
 app.use(cors(corsOptions));
+app.use(jwtCheck);
 
 app.use('/express', users);
 app.use('/express', cars);
