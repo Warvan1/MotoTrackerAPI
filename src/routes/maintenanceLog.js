@@ -52,6 +52,14 @@ router.get('/getmaintenancelog', requireUser, async (req, res) => {
         log = await db.query("select * from maintenance where car_id = $1;", [req.user_db.current_car]);
     }
 
+    //if the allData query is set then we send all the data and ignore paging
+    if(req.query.allData != null && req.query.allData === true){
+        res.json({
+            data: log.rows.reverse()
+        });
+        return;
+    }
+
     //paging calculations
     const PL = 20; //page length constant
     let page = 1;
