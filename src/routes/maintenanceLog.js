@@ -53,9 +53,9 @@ router.get('/getmaintenancelog', requireUser, async (req, res) => {
     }
 
     //if the allData query is set then we send all the data and ignore paging
-    if(req.query.allData != null && req.query.allData === true){
+    if(parseInt(req.query.statistics) === 1){
         res.json({
-            data: log.rows.reverse()
+            data: log.rows
         });
         return;
     }
