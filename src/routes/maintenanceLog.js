@@ -45,14 +45,14 @@ router.post('/addmaintenance', jsonParser, carIDCheckEdit, async (req, res) => {
 
 router.get('/getmaintenancelog', requireUser, async (req, res) => {
     let log;
-    if(req.query.filter != null){
+    if(!req.query.filter.isNull()){
         log = await db.query("select * from maintenance where car_id = $1 and service_type = $2;", [req.user_db.current_car, req.query.filter]);
     }
     else{
         log = await db.query("select * from maintenance where car_id = $1;", [req.user_db.current_car]);
     }
 
-    //if the allData query is set then we send all the data and ignore paging
+    //if the statistics query is set then we send the appropriate statistics data and ignore paging
     if(parseInt(req.query.statistics) === 1){
         res.json({
             data: log.rows
@@ -65,11 +65,11 @@ router.get('/getmaintenancelog', requireUser, async (req, res) => {
     let page = 1;
     //calculate total number of pages
     let totalPages = Math.floor(log.rows.length / PL);
-    if(log.rows.length % PL != 0){
+    if(log.rows.length % PL !== 0){
         totalPages++;
     }
     //set the page if req.query.page is set
-    if(req.query.page != null && req.query.page > 1 && req.query.page <= totalPages){
+    if(!req.query.page.isNull() && req.query.page > 1 && req.query.page <= totalPages){
         page = req.query.page;
     }
     //calculate the slice start and end
@@ -85,13 +85,13 @@ router.get('/getmaintenancelog', requireUser, async (req, res) => {
 });
 
 router.get('/deletemaintenancelog', requireUser, async (req, res) => {
-    if(req.query.maintenance_id === null){
+    if(req.query.maintenance_id.isNull()){
         res.json(null);
         return;
     }
 
     //check to make sure that we have edit permissions for the car
-    let access = await db.query("select * from access where car_id = $1 and user_id = $2 and permissions = $3", [req.user_db.current_car, req.user_db.user_id, "Edit"]);
+    let access = await db.query("select * from access where car_id = $1 and user_id = $2 and permissions = $3;", [req.user_db.current_car, req.user_db.user_id, "Edit"]);
     //if we dont have edit permissions
     if(access.rows.length === 0){
         res.json(null);
@@ -108,13 +108,13 @@ router.get('/deletemaintenancelog', requireUser, async (req, res) => {
     }
 
     //retrieve the car that the maintenance log entry refrenced
-    let car = await db.query("select * from cars where car_id = $1", [deletedLog.rows[0].car_id]);
+    let car = await db.query("select * from cars where car_id = $1;", [deletedLog.rows[0].car_id]);
     //retrieve the current max miles entry for this car
     let log = await db.query("select max(miles) from maintenance where car_id = $1;", [deletedLog.rows[0].car_id]);
 
     //handle empty log case
     let miles = log.rows[0].max;
-    if(miles === null){
+    if(miles.isNull()){
         miles = 0;
     }
 
@@ -133,7 +133,7 @@ router.get('/deletemaintenancelog', requireUser, async (req, res) => {
     //querys to update event values
     if(deletedLog.rows[0].service_type === "Oil Change"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Oil Change' and car_id = $1;", [deletedLog.rows[0].car_id]);
-        if(previousEntries.rows.length != 0){
+        if(previousEntries.rows.length !== 0){
             await db.query("update cars set oil_change_time = $1, oil_change_miles = $2 where car_id = $3;", 
                 [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles, deletedLog.rows[0].car_id]
             );
@@ -144,7 +144,7 @@ router.get('/deletemaintenancelog', requireUser, async (req, res) => {
     }
     else if(deletedLog.rows[0].service_type === "Tire Rotation"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Tire Rotation' and car_id = $1;", [deletedLog.rows[0].car_id]);
-        if(previousEntries.rows.length != 0){
+        if(previousEntries.rows.length !== 0){
             await db.query("update cars set tire_rotation_time = $1, tire_rotation_miles = $2 where car_id = $3;", 
                 [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles, deletedLog.rows[0].car_id]
             );
@@ -155,7 +155,7 @@ router.get('/deletemaintenancelog', requireUser, async (req, res) => {
     }
     else if(deletedLog.rows[0].service_type === "Air Filter"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Air Filter' and car_id = $1;", [deletedLog.rows[0].car_id]);
-        if(previousEntries.rows.length != 0){
+        if(previousEntries.rows.length !== 0){
             await db.query("update cars set air_filter_time = $1, air_filter_miles = $2 where car_id = $3;", 
                 [previousEntries.rows[previousEntries.rows.length - 1].timestamp, previousEntries.rows[previousEntries.rows.length - 1].miles, deletedLog.rows[0].car_id]
             );
@@ -166,7 +166,7 @@ router.get('/deletemaintenancelog', requireUser, async (req, res) => {
     }
     else if(deletedLog.rows[0].service_type === "Inspection"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Inspection' and car_id = $1;", [deletedLog.rows[0].car_id]);
-        if(previousEntries.rows.length != 0){
+        if(previousEntries.rows.length !== 0){
             await db.query("update cars set inspection_time = $1 where car_id = $2;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp, deletedLog.rows[0].car_id]);
         }
         else{
@@ -175,7 +175,7 @@ router.get('/deletemaintenancelog', requireUser, async (req, res) => {
     }
     else if(deletedLog.rows[0].service_type === "Registration"){
         let previousEntries = await db.query("select * from maintenance where service_type = 'Registration' and car_id = $1;", [deletedLog.rows[0].car_id]);
-        if(previousEntries.rows.length != 0){
+        if(previousEntries.rows.length !== 0){
             await db.query("update cars set registration_time = $1 where car_id = $2;", [previousEntries.rows[previousEntries.rows.length - 1].timestamp, deletedLog.rows[0].car_id]);
         }
         else{

@@ -15,7 +15,7 @@ router.post('/addcar', jsonParser, requireUser, async (req, res) => {
         //make this car our users current_car
         await db.query("update users set current_car = $1 where user_id = $2;", [car.rows[0].car_id, req.headers.userid]);
         //add a entry to the access table with Edit permissions
-        await db.query("insert into access values($1, $2, $3)", [car.rows[0].car_id, req.headers.userid, "Edit"]);
+        await db.query("insert into access values($1, $2, $3);", [car.rows[0].car_id, req.headers.userid, "Edit"]);
         //respond with the newly added car 
         res.json(car.rows[0]);
     }
@@ -26,7 +26,7 @@ router.post('/addcar', jsonParser, requireUser, async (req, res) => {
 
 router.get('/getcars', requireUser, async(req, res) => {
     //get all the cars that the user has any permissions for
-    let cars = await db.query("select cars.*, access.permissions from cars inner join access on cars.car_id = access.car_id where access.user_id = $1 order by cars.car_id", 
+    let cars = await db.query("select cars.*, access.permissions from cars inner join access on cars.car_id = access.car_id where access.user_id = $1 order by cars.car_id;", 
         [req.headers.userid]
     );
 
@@ -90,7 +90,7 @@ router.post('/sharecar', jsonParser, carIDCheckOwner, async(req, res) => {
     //handle adding or updating access for the user
     let access = await db.query("select * from access where car_id = $1 and user_id = $2;", [req.query.car_id, user.rows[0].user_id]);
     if(access.rows.length === 0){
-        await db.query("insert into access values($1, $2, $3)", [req.query.car_id, user.rows[0].user_id, req.body.permissions]);
+        await db.query("insert into access values($1, $2, $3);", [req.query.car_id, user.rows[0].user_id, req.body.permissions]);
     }
     else{
         await db.query("update access set permissions = $3 where car_id = $1 and user_id = $2;", [req.query.car_id, user.rows[0].user_id, req.body.permissions]);
@@ -109,7 +109,7 @@ router.get('/removemycaraccess', carIDCheckView, async(req, res) => {
     }
 
     //remove access from access table
-    await db.query("delete from access where car_id = $1 and user_id = $2", [req.query.car_id, req.headers.userid]);
+    await db.query("delete from access where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.userid]);
 })
 
 module.exports = router;
