@@ -10,7 +10,7 @@ if(!fs.existsSync(uploadsDir)){
     fs.mkdirSync(uploadsDir);
 }
 
-router.post('/uploadCarImage', express.raw({type: "image/*", limit: "30mb"}), carIDCheckEdit, async (req, res) => {
+router.post('/uploadCarImage', express.raw({type: "image/*", limit: "64mb"}), carIDCheckEdit, async (req, res) => {
     let filename = req.query.car_id + ".jpg";
     let filepath = path.join(uploadsDir, filename);
 
