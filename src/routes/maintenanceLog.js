@@ -45,7 +45,7 @@ router.post('/addmaintenance', jsonParser, carIDCheckEdit, async (req, res) => {
 
 router.get('/getmaintenancelog', requireUser, async (req, res) => {
     let log;
-    if(req.query.filter !== null){
+    if(req.query.filter !== undefined){
         log = await db.query("select * from maintenance where car_id = $1 and service_type = $2;", [req.user_db.current_car, req.query.filter]);
     }
     else{
@@ -69,7 +69,7 @@ router.get('/getmaintenancelog', requireUser, async (req, res) => {
         totalPages++;
     }
     //set the page if req.query.page is set
-    if(req.query.page !== null && req.query.page > 1 && req.query.page <= totalPages){
+    if(req.query.page !== undefined && req.query.page > 1 && req.query.page <= totalPages){
         page = req.query.page;
     }
     //calculate the slice start and end
@@ -85,7 +85,7 @@ router.get('/getmaintenancelog', requireUser, async (req, res) => {
 });
 
 router.get('/deletemaintenancelog', requireUser, async (req, res) => {
-    if(req.query.maintenance_id === null){
+    if(req.query.maintenance_id === undefined){
         res.json(null);
         return;
     }
@@ -114,7 +114,7 @@ router.get('/deletemaintenancelog', requireUser, async (req, res) => {
 
     //handle empty log case
     let miles = log.rows[0].max;
-    if(miles === null){
+    if(log.rows.length === 0){
         miles = 0;
     }
 

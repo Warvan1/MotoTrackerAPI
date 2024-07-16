@@ -2,7 +2,7 @@ const { db } = require('./utils.js');
 
 //stops the request if the userid header does not have a coresponding user object in the database
 const requireUser = async (req, res, next) => {
-    if(req.headers.userid !== null){
+    if(req.headers.userid !== undefined){
         //get the user from the database
         let user = await db.query("select * from users where user_id = $1;", [req.headers.userid]);
         //if the user object is not found return
@@ -21,7 +21,7 @@ const requireUser = async (req, res, next) => {
 
 //if the car_id query exists check to see if the user is the car owner
 const carIDCheckOwner = async (req, res, next) => {
-    if(req.query.car_id !== null && req.headers.userid !== null){
+    if(req.query.car_id !== undefined && req.headers.userid !== undefined){
         //get the car from the database
         let car = await db.query("select * from cars where car_id = $1 and user_id = $2;", [req.query.car_id, req.headers.userid]);
         //if the user object is not found return
@@ -40,7 +40,7 @@ const carIDCheckOwner = async (req, res, next) => {
 
 //if the car_id query exists check to see if the user has edit permissions
 const carIDCheckEdit = async (req, res, next) => {
-    if(req.query.car_id !== null && req.headers.userid !== null){
+    if(req.query.car_id !== undefined && req.headers.userid !== undefined){
         //check to see if there is an access entry for the car and the user with edit permissions
         let car = await db.query("select cars.*, access.permissions from access inner join cars on access.car_id = cars.car_id where access.car_id = $1 and access.user_id = $2 and access.permissions = $3;",
             [req.query.car_id, req.headers.userid, "Edit"]
@@ -60,7 +60,7 @@ const carIDCheckEdit = async (req, res, next) => {
 
 //if the car_id query exists check to see if the user has any permissions
 const carIDCheckView = async (req, res, next) => {
-    if(req.query.car_id !== null && req.headers.userid !== null){
+    if(req.query.car_id !== undefined && req.headers.userid !== undefined){
         //check to see if there is an access entry for the car and the user with any permissions
         let car = await db.query("select cars.*, access.permissions from access inner join cars on access.car_id = cars.car_id where access.car_id = $1 and access.user_id = $2;",
             [req.query.car_id, req.headers.userid]
