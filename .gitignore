@@ -1,3 +1,4 @@
 node_modules/
 auth0Authentication.json
 postgresAuthentication.json
+uploads/
