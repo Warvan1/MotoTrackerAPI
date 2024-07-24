@@ -5,6 +5,7 @@ let maintenanceLog = require('./routes/maintenanceLog.js');
 let imageHandler = require('./routes/imageHandler.js');
 let { jwtCheck } = require('./utils.js');
 let cors = require('cors');
+let helmet = require('helmet');
 
 const app = express();
 
@@ -14,6 +15,7 @@ let corsOptions = {
 }
 
 app.use(cors(corsOptions));
+app.use(helmet());
 app.use(jwtCheck);
 
 app.use('/express', users);
