@@ -4,11 +4,9 @@ const { db } = require('../utils.js');
 const { requireUser, carIDCheckOwner, carIDCheckView } = require('../middleware.js');
 
 router.post('/addcar', jsonParser, requireUser, async (req, res) => {
-    //TODO: add post body input validation
-
     //add the car to the cars table using the request body
-    let car = await db.query("insert into cars(user_id, name, year, make, model, picture, miles) values($1, $2, $3, $4, $5, $6, $7) returning *;", 
-        [req.headers.userid, req.body.name, req.body.year, req.body.make, req.body.model, req.body.picture, req.body.miles]
+    let car = await db.query("insert into cars(user_id, name, year, make, model, miles) values($1, $2, $3, $4, $5, $6) returning *;", 
+        [req.headers.userid, req.body.name, req.body.year, req.body.make, req.body.model, req.body.miles]
     );
 
     if(car.rows.length === 1){

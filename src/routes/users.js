@@ -7,12 +7,10 @@ router.post('/adduser', jsonParser, async (req, res) => {
     //check to see if user already exists
     let user = await db.query("select * from users where user_id = $1;", [req.body.userid]);
 
-    //TODO: add post body input validation
-
     //if the user doesnt exist add a new user
     if(user.rows.length === 0){
-        await db.query("insert into users(user_id, email, email_verified, picture) values($1, $2, $3, $4);", 
-            [req.body.userid, req.body.email, req.body.email_verified, req.body.picture]
+        await db.query("insert into users(user_id, email, email_verified) values($1, $2, $3);", 
+            [req.body.userid, req.body.email, req.body.email_verified]
         );
     }
 
